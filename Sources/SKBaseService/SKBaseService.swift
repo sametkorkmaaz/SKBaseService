@@ -5,14 +5,15 @@ import Foundation
 
 public final class SKBaseService {
 
-    @MainActor public static let shared = SKBaseService()
+    @MainActor
+    public static let shared = SKBaseService()
     private init() {}
 
     public func request<T: Decodable>(
         url: URL,
         method: HTTPMethod = .get,
         body: (any Encodable)? = nil,
-        completion: @escaping (Result<T, NetworkError>) -> Void
+        completion: @escaping @MainActor (Result<T, NetworkError>) -> Void
     ) {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
@@ -22,7 +23,9 @@ public final class SKBaseService {
                 request.httpBody = try JSONEncoder().encode(body)
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             } catch {
-                completion(.failure(.decodingFailed(error)))
+                DispatchQueue.main.async {
+                    completion(.failure(.decodingFailed(error)))
+                }
                 return
             }
         }
